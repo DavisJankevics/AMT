@@ -14,12 +14,12 @@ defaults:
 # data
 train_loader:
   batch_size: 8 # increase for faster training, reduce for less memory usage
-  num_workers: 2 # set to same number as CPU cores
+  num_workers: 8 # set to same number as CPU cores
   shuffle: True
   drop_last: True
 val_loader:
   batch_size: 8 # increase for faster training, reduce for less memory usage
-  num_workers: 2 # set to same number as CPU cores 
+  num_workers: 8 # set to same number as CPU cores 
   shuffle: False
   drop_last: False
 

@@ -208,7 +208,6 @@ def train(
         **cfg.trainer,
         logger=logger,
         callbacks=callbacks,
-        num_sanity_val_steps = 0,
     )
     
     # if cfg.chkp_path != None:

@@ -51,7 +51,7 @@ trainer:
   max_epochs: 500
   val_check_interval: 1 # comment out to ignore validation data (i.e. for final training)
   check_val_every_n_epoch: 1 # comment out to ignore validation data (i.e. for final training)
-  num_sanity_val_steps: 0 # comment out to ignore validation data (i.e. for final training)
+  num_sanity_val_steps: 5 # comment out to ignore validation data (i.e. for final training)
   log_every_n_steps: 10 # 100
   accelerator: auto # "auto", gpu
   devices: auto # "auto" or # - can increase devices with more gpus available

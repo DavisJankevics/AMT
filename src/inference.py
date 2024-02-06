@@ -53,6 +53,9 @@ class InferenceProgram:
 
             # apply separator to the mixture file
             y_hat = self.sep(y).cpu()
+            print(y_hat.T)
+            print(out_fp)
+
 
             # save file as .wav
             sf.write(out_fp, y_hat.T, samplerate=self.dataset.sr)

@@ -53,7 +53,7 @@ class InferenceProgram:
 
             # apply separator to the mixture file
             y_hat = self.sep(y).cpu()
-            print(y_hat.T)
+            print(y_hat.shape)   
             print(out_fp)
 
 

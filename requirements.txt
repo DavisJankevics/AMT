@@ -9,3 +9,6 @@ tensorboard==2.12.0
 wandb==0.14.2
 tqdm==4.64.1
 museval==0.4.0
+librosa==0.8.1
+midiutil==1.2.1
+argparse==1.4.0

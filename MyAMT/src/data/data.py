@@ -46,7 +46,7 @@ class MusicNetDataset(Dataset):
         labels = pd.read_csv(label_file)  # load labels as a pandas DataFrame
 
         # Convert labels to a suitable format here, if necessary
-        labels = torch.tensor(labels.values)  # convert DataFrame to PyTorch tensor
+        labels = torch.from_numpy(labels.values)  # convert DataFrame to PyTorch tensor
 
         # Convert labels to a suitable format here, if necessary
 

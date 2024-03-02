@@ -21,20 +21,23 @@ class MusicNetDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # Load the audio file
         audio_file = os.path.join(self.data_dir, self.audio_files[idx])
         audio, sr = librosa.load(audio_file, sr=None, mono=False)  # load audio as a numpy array
 
-        # Pad the audio data to a fixed length
+        # Pad or truncate the audio data to a fixed length
         max_length = 44100 * 30  # e.g., 30 seconds at 44100 Hz
         if audio.ndim == 1:  # mono audio
             if len(audio) < max_length:
                 padding = np.zeros(max_length - len(audio))
                 audio = np.concatenate((audio, padding))
+            else:
+                audio = audio[:max_length]
         else:  # stereo audio
             if audio.shape[1] < max_length:
                 padding = np.zeros((2, max_length - audio.shape[1]))
                 audio = np.concatenate((audio, padding), axis=1)
+            else:
+                audio = audio[:, :max_length]
 
         audio = torch.from_numpy(audio)  # convert to PyTorch tensor
 

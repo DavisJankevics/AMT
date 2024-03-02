@@ -24,12 +24,14 @@ class MusicNetDataset(Dataset):
         # Load the audio file
         audio_file = os.path.join(self.data_dir, self.audio_files[idx])
         audio, sr = librosa.load(audio_file, sr=None, mono=False)  # load audio as a numpy array
-        audio = torch.from_numpy(audio)  # convert to PyTorch tensor
 
+        # Pad each channel of the audio data to a fixed length
         max_length = 44100 * 30  # e.g., 30 seconds at 44100 Hz
-        if len(audio) < max_length:
-            padding = np.zeros(max_length - len(audio))
-            audio = np.concatenate((audio, padding))
+        if audio.shape[1] < max_length:
+            padding = np.zeros((2, max_length - audio.shape[1]))
+            audio = np.concatenate((audio, padding), axis=1)
+
+        audio = torch.from_numpy(audio)  # convert to PyTorch tensor
 
         # Load the corresponding labels file
         label_file = os.path.join(self.labels_dir, self.audio_files[idx].replace('.wav', '.csv'))

@@ -1,7 +1,7 @@
 import argparse
 import torch
 from torch.utils.data import DataLoader
-from model import BiLSTM
+from model.model import BiLSTM
 from conf.conf import Config
 from utils.utils import preprocess_audio
 from data.data import MusicNetDataset  

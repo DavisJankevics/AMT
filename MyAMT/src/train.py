@@ -54,7 +54,7 @@ def train(db_location, load_model_path=None):
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
-        start_epoch = 0
+    start_epoch = 0
     if load_model_path is not None:
         model, optimizer, start_epoch, _ = load_checkpoint(load_model_path, model, optimizer, device)
 

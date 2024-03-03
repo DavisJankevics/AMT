@@ -84,7 +84,7 @@ def train(db_location, load_model_path=None):
             loss.backward()
             optimizer.step()
 
-            if epoch % 10 == 0:  # Assuming you want to save every 10 epochs
+            if epoch % 10 == 0:
                 save_path = f'./checkpoints/checkpoint_epoch_{epoch}.pth'
                 save_checkpoint(save_path, model, optimizer, epoch, loss.item())
 

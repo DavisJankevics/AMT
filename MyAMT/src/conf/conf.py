@@ -2,7 +2,7 @@ class Config:
     def __init__(self):
         # Training parameters
         self.num_epochs = 100
-        self.batch_size = 8
+        self.batch_size = 4
         self.learning_rate = 0.001
 
         # Feature extraction parameters

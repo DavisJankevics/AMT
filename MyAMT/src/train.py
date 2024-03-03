@@ -8,6 +8,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 
 # Set the device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.cuda.empty_cache()
 print(f"Using device: {device}")
 
 def save_checkpoint(save_path, model, optimizer, epoch, loss):
@@ -59,7 +60,7 @@ def train(db_location, load_model_path=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     train_dataset = MusicNetDataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length)
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn, pin_memory=True)
 
     model.train()
     for epoch in range(config.num_epochs):

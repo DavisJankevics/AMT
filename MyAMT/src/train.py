@@ -49,15 +49,14 @@ def custom_collate_fn(batch):
 def train(db_location, load_model_path=None):
     config = Config()
     model = BiLSTM(config).to(device)
-
-    start_epoch = 0
-    if load_model_path is not None:
-        model, optimizer, start_epoch, _ = load_checkpoint(load_model_path, model, optimizer, device)
-
     
     # Adjust loss function for classification tasks, assuming ignore_index=-1 for padded values
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+
+        start_epoch = 0
+    if load_model_path is not None:
+        model, optimizer, start_epoch, _ = load_checkpoint(load_model_path, model, optimizer, device)
 
     train_dataset = MusicNetDataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn)

@@ -20,7 +20,9 @@ class BiLSTM(nn.Module):
 
     def forward(self, x, lengths):
         # Pack the padded sequence
-        packed_x = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+        lengths_cpu = lengths.to('cpu')
+
+        packed_x = pack_padded_sequence(x, lengths_cpu, batch_first=True, enforce_sorted=False)
         packed_output, (hidden, cell) = self.lstm(packed_x)
         
         # Unpack the sequence

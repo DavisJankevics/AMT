@@ -16,4 +16,4 @@ class Config:
         self.hidden_size = 256  # LSTM hidden layer size
         self.num_layers = 2  # Number of LSTM layers
         self.bidirectional = True  # Whether to use a bidirectional LSTM
-        self.output_size = 120  # Number of output classes
+        self.output_size = 103  # Number of output classes

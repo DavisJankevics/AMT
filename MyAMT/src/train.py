@@ -10,6 +10,25 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+def save_checkpoint(save_path, model, optimizer, epoch, loss):
+    state_dict = {
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'epoch': epoch,
+        'loss': loss
+    }
+    torch.save(state_dict, save_path)
+    print(f'Model saved to => {save_path}')
+
+def load_checkpoint(load_path, model, optimizer, device):
+    checkpoint = torch.load(load_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+    loss = checkpoint['loss']
+    print(f'Model loaded from <== {load_path}')
+    return model, optimizer, epoch, loss
+
 def custom_collate_fn(batch):
     # Extract features and labels from the batch
     audio_features = [item['audio'] for item in batch]
@@ -26,9 +45,14 @@ def custom_collate_fn(batch):
 
     return {'audio': audio_features_padded, 'labels': labels_padded, 'lengths': lengths}
 
-def train(db_location):
+def train(db_location, load_model_path=None):
     config = Config()
     model = BiLSTM(config).to(device)
+
+    start_epoch = 0
+    if load_model_path is not None:
+        model, optimizer, start_epoch, _ = load_checkpoint(load_model_path, model, optimizer, device)
+
     
     # Adjust loss function for classification tasks, assuming ignore_index=-1 for padded values
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
@@ -39,7 +63,10 @@ def train(db_location):
 
     model.train()
     for epoch in range(config.num_epochs):
+        print(f'Starting Epoch {epoch+1}')
         for batch_idx, batch in enumerate(train_loader):
+            print(f'Epoch {epoch+1}, Batch {batch_idx+1}')
+
             audio_features = batch['audio']
             labels = batch['labels']
             lengths = batch['lengths']
@@ -59,11 +86,16 @@ def train(db_location):
             loss.backward()
             optimizer.step()
 
+            if epoch % 10 == 0:  # Assuming you want to save every 10 epochs
+                save_path = f'checkpoint_epoch_{epoch}.pth'
+                save_checkpoint(save_path, model, optimizer, epoch, loss.item())
+
             print(f'Epoch {epoch+1}, Batch {batch_idx}, Loss: {loss.item()}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train BiLSTM for Music Transcription')
     parser.add_argument('--db_location', type=str, required=True, help='Location of MusicNet database')
+    parser.add_argument('--load_model_path', type=str, default=None, help='Path to load the model checkpoint')
     args = parser.parse_args()
 
-    train(args.db_location)
+    train(args.db_location, args.load_model_path)

@@ -66,6 +66,7 @@ def train(db_location, load_model_path=None):
     for epoch in range(config.num_epochs):
         print(f'-------------------------------------------------------')
         print(f'Starting Epoch {epoch+1}')
+        best_loss = float('inf')
         for batch_idx, batch in enumerate(train_loader):
 
             audio_features = batch['audio']
@@ -84,7 +85,8 @@ def train(db_location, load_model_path=None):
             loss.backward()
             optimizer.step()
 
-            if epoch % 10 == 0:
+            if epoch % 10 == 0 and loss.item() < best_loss:
+                best_loss = loss.item()
                 save_path = f'./checkpoints/checkpoint_epoch_{epoch}.pth'
                 save_checkpoint(save_path, model, optimizer, epoch, loss.item())
 

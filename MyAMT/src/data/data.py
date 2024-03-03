@@ -1,17 +1,17 @@
 import torch
 from torch.utils.data import Dataset
-import numpy as np
 import os
 import pandas as pd
 import librosa
+from utils.utils import extract_features
 
 class MusicNetDataset(Dataset):
-    def __init__(self, root_dir, split='train', transform=None):
+    def __init__(self, root_dir, split='train', sr=44100, hop_length=512):
         self.data_dir = os.path.join(root_dir, f'{split}_data')
         self.labels_dir = os.path.join(root_dir, f'{split}_labels')
-        self.transform = transform
+        self.sr = sr
+        self.hop_length = hop_length
 
-        # Get a sorted list of audio files
         self.audio_files = sorted(os.listdir(self.data_dir))
 
     def __len__(self):
@@ -22,35 +22,27 @@ class MusicNetDataset(Dataset):
             idx = idx.tolist()
 
         audio_file = os.path.join(self.data_dir, self.audio_files[idx])
-        audio, sr = librosa.load(audio_file, sr=None, mono=False)  # load audio as a numpy array
+        audio, sr = librosa.load(audio_file, sr=self.sr, mono=True)
+        features = extract_features(audio, sr=sr)
 
-        # Pad or truncate the audio data to a fixed length
-        max_length = 44100 * 30  # e.g., 30 seconds at 44100 Hz
-        if audio.ndim == 1:  # mono audio
-            if len(audio) < max_length:
-                padding = np.zeros(max_length - len(audio))
-                audio = np.concatenate((audio, padding))
-            else:
-                audio = audio[:max_length]
-        else:  # stereo audio
-            if audio.shape[1] < max_length:
-                padding = np.zeros((2, max_length - audio.shape[1]))
-                audio = np.concatenate((audio, padding), axis=1)
-            else:
-                audio = audio[:, :max_length]
-
-        audio = torch.from_numpy(audio)  # convert to PyTorch tensor
-
-        # Load the corresponding labels file
         label_file = os.path.join(self.labels_dir, self.audio_files[idx].replace('.wav', '.csv'))
-        labels = pd.read_csv(label_file)  # load labels as a pandas DataFrame
+        labels_df = pd.read_csv(label_file)
 
-        # Convert labels to a suitable format here, if necessary
-        labels = torch.from_numpy(labels.values)  # convert DataFrame to PyTorch tensor
+        # Calculate the total steps based on the audio duration and hop length
+        total_steps = features.shape[0]
 
-        # Convert labels to a suitable format here, if necessary
+        # Initialize the label tensor with zeros
+        label_tensor = torch.zeros(total_steps, dtype=torch.long) - 1  # Use -1 for "no note"
 
-        if self.transform:
-            audio = self.transform(audio)
+        # Process each label entry
+        for _, row in labels_df.iterrows():
+            start_step = int(row['start_time'] / (1000 * (self.sr / self.hop_length)))
+            end_step = int(row['end_time'] / (1000 * (self.sr / self.hop_length)))
+            note_value = row['note']  # Assuming 'note' is the target label you want to predict
 
-        return {'audio': audio, 'labels': labels}
+            # Mark the presence of the note in the corresponding steps
+            label_tensor[start_step:end_step] = note_value
+
+        return {'audio': features, 'labels': label_tensor}
+
+# Note: Adjust 'extract_features' as necessary to return MFCC features with the expected shape.

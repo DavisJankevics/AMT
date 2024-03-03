@@ -62,7 +62,7 @@ def train(db_location, load_model_path=None):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
     model.train()
-    for epoch in range(config.num_epochs):
+    for epoch in range(start_epoch, config.num_epochs):
         print(f'-------------------------------------------------------')
         print(f'Starting Epoch {epoch+1}')
         best_loss = float('inf')

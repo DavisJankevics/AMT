@@ -64,16 +64,13 @@ def train(db_location, load_model_path=None):
 
     model.train()
     for epoch in range(config.num_epochs):
+        print(f'-------------------------------------------------------')
         print(f'Starting Epoch {epoch+1}')
         for batch_idx, batch in enumerate(train_loader):
-            print(f'Epoch {epoch+1}, Batch {batch_idx+1}')
 
             audio_features = batch['audio']
             labels = batch['labels']
             lengths = batch['lengths']
-            # max_note_value = max(labels)  # Assuming `labels` is a list/array of your label values
-            # if max_note_value >= config.output_size:
-            #     raise ValueError(f"Found label value {max_note_value} exceeding configured output size {config.output_size}.")
 
             optimizer.zero_grad()
 
@@ -91,7 +88,7 @@ def train(db_location, load_model_path=None):
                 save_path = f'checkpoint_epoch_{epoch}.pth'
                 save_checkpoint(save_path, model, optimizer, epoch, loss.item())
 
-            print(f'Epoch {epoch+1}, Batch {batch_idx}, Loss: {loss.item()}')
+            print(f'Epoch {epoch}, Batch {batch_idx}, Loss: {loss.item()}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train BiLSTM for Music Transcription')

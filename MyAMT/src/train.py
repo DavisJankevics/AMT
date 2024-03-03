@@ -57,6 +57,7 @@ def train(db_location, load_model_path=None):
     start_epoch = 0
     if load_model_path is not None:
         model, optimizer, start_epoch, _ = load_checkpoint(load_model_path, model, optimizer, device)
+        start_epoch += 1
 
     train_dataset = MusicNetDataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn)

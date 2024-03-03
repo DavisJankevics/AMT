@@ -65,7 +65,7 @@ def train(db_location, load_model_path=None):
     model.train()
     for epoch in range(start_epoch, config.num_epochs):
         print(f'-------------------------------------------------------')
-        print(f'Starting Epoch {epoch+1}')
+        print(f'Starting Epoch {epoch}')
         best_loss = float('inf')
         for batch_idx, batch in enumerate(train_loader):
 

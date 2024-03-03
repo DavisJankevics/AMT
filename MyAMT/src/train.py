@@ -60,7 +60,7 @@ def train(db_location, load_model_path=None):
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
 
     train_dataset = MusicNetDataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length)
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
     model.train()
     for epoch in range(config.num_epochs):

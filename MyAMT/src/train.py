@@ -85,7 +85,7 @@ def train(db_location, load_model_path=None):
             loss.backward()
             optimizer.step()
 
-            if epoch % 10 == 0 and loss.item() < best_loss:
+            if loss.item() < best_loss:
                 best_loss = loss.item()
                 save_path = f'./checkpoints/checkpoint_epoch_{epoch}.pth'
                 save_checkpoint(save_path, model, optimizer, epoch, loss.item())

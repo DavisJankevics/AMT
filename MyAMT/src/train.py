@@ -16,14 +16,16 @@ else:
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 
-def load_model_checkpoint(checkpoint_path):
-    try:
-        model = tf.keras.models.load_model(checkpoint_path)
-        print(f"Model loaded successfully from {checkpoint_path}.")
-        return model
-    except Exception as e:
-        print(f"Error loading model from {checkpoint_path}: {e}")
-        return None
+# def load_model_checkpoint(checkpoint_path):
+#     print("\n\n\n",checkpoint_path)
+    
+#     try:
+#         model = tf.keras.models.load_model(checkpoint_path)
+#         print(f"Model loaded successfully from {checkpoint_path}.")
+#         return model
+#     except Exception as e:
+#         print(f"Error loading model from {checkpoint_path}: {e}")
+#         return None
 
 # class BatchMetricsCallback(Callback):
 #     def __init__(self):
@@ -50,20 +52,26 @@ def train(db_location, load_model_path=None):
     num_notes = config.output_size
     # model = build_model(input_shape, num_notes, config)
 
-    if load_model_path is not None:
-        model = load_model_checkpoint(load_model_path)
-        if model is None:
-            print("Starting training with a new model.")
-            model = build_model(input_shape, num_notes, config)
+    model = build_model(input_shape, num_notes, config)
+    
+    if load_model_path:
+        # Check if the path is a .ckpt file (weights only)
+        if load_model_path.endswith('.ckpt'):
+            # Load weights into the model
+            model.load_weights(load_model_path)
+            print(f"Weights loaded successfully from {load_model_path}.")
+        else:
+            # For .h5 files, you can load the full model (uncomment below line if needed)
+            model = tf.keras.models.load_model(load_model_path)
     else:
-        model = build_model(input_shape, num_notes, config)
+        print("Starting training with a new model.")
 
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
-        ModelCheckpoint("./checkpoints/model_{epoch:02d}.keras", save_best_only=True, monitor='val_loss'),
+        ModelCheckpoint("./checkpoints/model_{epoch:03d}.ckpt", save_weights_only=True, save_best_only=True, monitor='val_loss'),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     ]
     history = model.fit(
@@ -73,6 +81,7 @@ def train(db_location, load_model_path=None):
         callbacks=[callbacks]
     )
     model.save("./final_model.h5")
+    model.save_weights("./final_model_w.ckpt")
 
     return history
 

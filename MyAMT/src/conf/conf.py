@@ -3,7 +3,7 @@ class Config:
         # Training parameters
         self.num_epochs = 200
         self.batch_size = 8
-        self.learning_rate = 0.001
+        self.learning_rate = 0.1
 
         # Feature extraction parameters
         self.sr = 44100  # Sample rate for audio files
@@ -16,4 +16,4 @@ class Config:
         self.num_layers = 2  # Number of LSTM layers
         self.bidirectional = True  # Whether to use a bidirectional LSTM
         self.output_size = 88
-        self.dropout = 0.5
+        self.dropout = 0.3

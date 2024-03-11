@@ -8,6 +8,8 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from tensorflow.keras.metrics import Precision, Recall
 import tensorflow as tf
+from tensorflow.keras.callbacks import LearningRateScheduler
+import tensorflow.keras.backend as K
 
 if tf.test.gpu_device_name():
     print("Default GPU Device: {}".format(tf.test.gpu_device_name()))
@@ -15,6 +17,11 @@ else:
     print("Please install GPU version of TF")
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
+def scheduler(epoch, lr):
+    if epoch < 15:
+        return lr
+    else:
+        return lr * tf.math.exp(-0.1)
 
 # def load_model_checkpoint(checkpoint_path):
 #     print("\n\n\n",checkpoint_path)
@@ -72,13 +79,14 @@ def train(db_location, load_model_path=None):
     else:
         print("Starting training with a new model.")
 
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
         ModelCheckpoint("./checkpoints/model_{epoch:03d}.h5", save_weights_only=False, save_best_only=True, monitor='val_loss', mode='min', verbose=1),
-        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        LearningRateScheduler(scheduler)
     ]
     
     history = model.fit(

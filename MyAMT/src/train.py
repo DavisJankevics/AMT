@@ -8,6 +8,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from tensorflow.keras.metrics import Precision, Recall
 import tensorflow as tf
+
 if tf.test.gpu_device_name():
     print("Default GPU Device: {}".format(tf.test.gpu_device_name()))
 else:
@@ -52,9 +53,14 @@ def train(db_location, load_model_path=None):
     # model = build_model(input_shape, num_notes, config)
 
     model = build_model(input_shape, num_notes, config)
+    initial_epoch = 0
     
     if load_model_path:
         # Check if the path is a .ckpt file (weights only)
+        filename = load_model_path.split('/')[-1]  # Get the file name
+        epoch_str = filename.split('_')[1]  # Split by "_" and get the epoch part
+        initial_epoch = int(epoch_str.split('.')[0])
+        print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):
             # For .h5 files, you can load the full model (uncomment below line if needed)
             model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer})
@@ -74,11 +80,13 @@ def train(db_location, load_model_path=None):
         ModelCheckpoint("./checkpoints/model_{epoch:03d}.h5", save_weights_only=False, save_best_only=True, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     ]
+    
     history = model.fit(
         train_dataset.batch(config.batch_size),  # Ensure batching is applied
         epochs=config.num_epochs,
         validation_data=val_dataset.batch(config.batch_size),  # Ensure batching is applied
-        callbacks=[callbacks]
+        callbacks=[callbacks],
+        initial_epoch=initial_epoch
     )
     model.save("./final_model.h5")
     model.save_weights("./final_model_w.ckpt")

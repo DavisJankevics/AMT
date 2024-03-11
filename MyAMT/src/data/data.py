@@ -5,44 +5,110 @@ import pandas as pd
 import librosa
 from utils.utils import extract_features
 
-class MusicNetDataset(Dataset):
-    def __init__(self, root_dir, split='train', sr=44100, hop_length=512):
-        self.data_dir = os.path.join(root_dir, f'{split}_data')
-        self.labels_dir = os.path.join(root_dir, f'{split}_labels')
-        self.sr = sr
-        self.hop_length = hop_length
+# class MusicNetDataset(Dataset):
+#     def __init__(self, root_dir, split='train', sr=44100, hop_length=512, n_mfcc=13):
+#         self.data_dir = os.path.join(root_dir, f'{split}_data')
+#         self.labels_dir = os.path.join(root_dir, f'{split}_labels')
+#         self.sr = sr
+#         self.hop_length = hop_length
+#         self.n_mfcc = n_mfcc
 
-        self.audio_files = sorted(os.listdir(self.data_dir))
+#         # Piano range
+#         self.min_midi = 21
+#         self.max_midi = 108
+#         self.num_notes = 88  # Fixed to piano range
 
-    def __len__(self):
-        return len(self.audio_files)
+#         self.audio_files = sorted(os.listdir(self.data_dir))
 
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
+#     def __len__(self):
+#         return len(self.audio_files)
 
-        audio_file = os.path.join(self.data_dir, self.audio_files[idx])
-        audio, sr = librosa.load(audio_file, sr=self.sr, mono=True)
-        features = extract_features(audio, sr=sr)
+#     def __getitem__(self, idx):
+#         if torch.is_tensor(idx):
+#             idx = idx.tolist()
 
-        label_file = os.path.join(self.labels_dir, self.audio_files[idx].replace('.wav', '.csv'))
-        labels_df = pd.read_csv(label_file)
+#         audio_file = os.path.join(self.data_dir, self.audio_files[idx])
+#         audio, sr = librosa.load(audio_file, sr=self.sr, mono=True)
+#         features = extract_features(audio, sr=sr, n_mfcc=self.n_mfcc, hop_length=self.hop_length)
 
-        # Calculate the total steps based on the audio duration and hop length
-        total_steps = features.shape[0]
+#         label_file = os.path.join(self.labels_dir, self.audio_files[idx].replace('.wav', '.csv'))
+#         labels_df = pd.read_csv(label_file)
 
-        # Initialize the label tensor with zeros
-        label_tensor = torch.zeros(total_steps, dtype=torch.long) - 1  # Use -1 for "no note"
+#         total_steps = features.shape[0]
+        
+#         # Initialize the label tensor with -1 for each time step
+#         label_tensor = torch.zeros((total_steps, self.num_notes), dtype=torch.float32) - 1
 
-        # Process each label entry
-        for _, row in labels_df.iterrows():
-            start_step = int(row['start_time'] / (1000 * (self.sr / self.hop_length)))
-            end_step = int(row['end_time'] / (1000 * (self.sr / self.hop_length)))
-            note_value = row['note']  # Assuming 'note' is the target label you want to predict
+#         for _, row in labels_df.iterrows():
+#             start_time = row['start_time'] / 1000.0  # Convert to seconds
+#             end_time = row['end_time'] / 1000.0
+#             start_step = int(start_time * self.sr / self.hop_length)
+#             end_step = int(end_time * self.sr / self.hop_length)
+#             note = int(row['note'])
+#             note_index = note - self.min_midi  # Convert MIDI number to index
+            
+#             # Set labels for active note in its duration
+#             if 0 <= note_index < self.num_notes:
+#                 label_tensor[start_step:end_step, note_index] = 1
 
-            # Mark the presence of the note in the corresponding steps
-            label_tensor[start_step:end_step] = note_value
+#         return {'audio': features, 'labels': label_tensor}
+import tensorflow as tf
+import pandas as pd
+import os
+import librosa
+import numpy as np
 
-        return {'audio': features, 'labels': label_tensor}
+def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=90):
+    audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)
+    
+    # Calculate the target length in frames
+    target_length = int(sr * target_duration / hop_length)
+    
+    mfcc_features = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, hop_length=hop_length).T
+    mfcc_features = np.expand_dims(mfcc_features, -1)  # Add channel dimension
+    
+    # Pad or truncate the mfcc features to match the target_length
+    if len(mfcc_features) < target_length:
+        # Pad
+        padding = np.zeros((target_length - len(mfcc_features), n_mfcc, 1))
+        mfcc_features = np.concatenate((mfcc_features, padding), axis=0)
+    else:
+        # Truncate
+        mfcc_features = mfcc_features[:target_length]
 
-# Note: Adjust 'extract_features' as necessary to return MFCC features with the expected shape.
+    labels_df = pd.read_csv(label_file_path)
+    label_tensor = np.zeros((target_length, 88), dtype=np.float32)  # Initialize label tensor with zeros
+
+    for _, row in labels_df.iterrows():
+        start_time = row['start_time'] / 1000.0
+        end_time = row['end_time'] / 1000.0
+        start_step = int(start_time * sr / hop_length)
+        end_step = int(end_time * sr / hop_length)
+        note = int(row['note']) - 21
+        
+        # Ensure end_step does not exceed target_length
+        end_step = min(end_step, target_length)
+        
+        if 0 <= note < 88 and start_step < target_length:
+            label_tensor[start_step:end_step, note] = 1
+
+    return mfcc_features, label_tensor
+
+def create_tf_dataset(root_dir, split, sr=44100, hop_length=512, n_mfcc=13):
+    data_dir = os.path.join(root_dir, f'{split}_data')
+    labels_dir = os.path.join(root_dir, f'{split}_labels')
+    audio_files = sorted(os.listdir(data_dir))
+    
+    def gen():
+        for audio_file in audio_files:
+            audio_path = os.path.join(data_dir, audio_file)
+            label_path = os.path.join(labels_dir, audio_file.replace('.wav', '.csv'))
+            features, labels = load_data_and_labels(audio_path, label_path, sr, hop_length, n_mfcc)
+            yield features, labels
+
+    return tf.data.Dataset.from_generator(
+        gen,
+        output_signature=(
+            tf.TensorSpec(shape=(None, n_mfcc, 1), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, 88), dtype=tf.float32),
+        ))

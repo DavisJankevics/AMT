@@ -23,35 +23,14 @@ def scheduler(epoch, lr):
     else:
         return lr * tf.math.exp(-0.1)
 
-# def load_model_checkpoint(checkpoint_path):
-#     print("\n\n\n",checkpoint_path)
-    
-#     try:
-#         model = tf.keras.models.load_model(checkpoint_path)
-#         print(f"Model loaded successfully from {checkpoint_path}.")
-#         return model
-#     except Exception as e:
-#         print(f"Error loading model from {checkpoint_path}: {e}")
-#         return None
-
-# class BatchMetricsCallback(Callback):
-#     def __init__(self):
-#         super(BatchMetricsCallback, self).__init__()
-#         self.accuracy = tf.keras.metrics.Accuracy()
-#         self.precision = tf.keras.metrics.Precision()
-#         self.recall = tf.keras.metrics.Recall()
-
-#     def on_train_batch_end(self, batch, logs=None):
-#         logs = logs or {}
-#         acc = logs.get('accuracy')
-#         prec = logs.get('precision')
-#         rec = logs.get('recall')
-#         print("acc",acc)
-#         print("prec",prec)
-#         print("rec",rec)
-        # if(acc is not None):
-        #     f1_score = 2 * (prec * rec) / (prec + rec + tf.keras.backend.epsilon())
-        #     print(f"\nBatch {batch}, Loss: {logs.get('loss'):.4f}, Accuracy: {acc:.4f}, Precision: {prec:.4f}, Recall: {rec:.4f}, F1 Score: {f1_score:.4f}")
+class BatchMetricsLogger(tf.keras.callbacks.Callback):
+    def on_train_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        print(f"Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+        
+    def on_test_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        print(f"Validation Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
 
 def train(db_location, load_model_path=None):
     config = Config()
@@ -86,7 +65,8 @@ def train(db_location, load_model_path=None):
     callbacks = [
         ModelCheckpoint("./checkpoints/model_{epoch:03d}.h5", save_weights_only=False, save_best_only=True, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
-        LearningRateScheduler(scheduler)
+        LearningRateScheduler(scheduler),
+        BatchMetricsLogger()
     ]
     
     history = model.fit(

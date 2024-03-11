@@ -12,4 +12,4 @@ museval==0.4.0
 librosa==0.8.1
 midiutil==1.2.1
 argparse==1.4.0
-tensorflow>=2.4.0,<3.0
+tensorflow==2.15.0

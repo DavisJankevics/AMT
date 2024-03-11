@@ -1,7 +1,7 @@
 import argparse
 import torch
 from torch.utils.data import DataLoader
-from model.model import build_model
+from model.model import build_model, AttentionLayer
 from conf.conf import Config
 from data.data import create_tf_dataset
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
@@ -62,7 +62,8 @@ def train(db_location, load_model_path=None):
             print(f"Weights loaded successfully from {load_model_path}.")
         else:
             # For .h5 files, you can load the full model (uncomment below line if needed)
-            model = tf.keras.models.load_model(load_model_path)
+            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer})
+            print(f"Model loaded successfully from {load_model_path}.")
     else:
         print("Starting training with a new model.")
 
@@ -71,7 +72,7 @@ def train(db_location, load_model_path=None):
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
-        ModelCheckpoint("./checkpoints/model_{epoch:03d}.h5", save_best_only=True, monitor='val_loss'),
+        ModelCheckpoint("./checkpoints/model_{epoch:03d}.ckpt", save_weights_only=True, save_best_only=True, monitor='val_loss'),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     ]
     history = model.fit(

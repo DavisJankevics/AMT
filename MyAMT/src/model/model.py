@@ -139,32 +139,19 @@ class AttentionLayer(layers.Layer):
         return context_vector, attention_weights
 
 def build_model(input_shape, num_notes, config):
-    print("input_shape", input_shape)
-    print("num_notes", num_notes)
-    print("config", config)
+
     sequence_input = keras.Input(shape=input_shape, dtype='float32')
-    print("sequence_input", sequence_input.shape)
     # LSTM layers with return_sequences=True to output sequences for attention layer
     lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout if config.num_layers > 1 else 0, dtype='float32'))(sequence_input)
-    print("lstm_out.shape")
-    print(lstm_out.shape)
     for _ in range(1, config.num_layers):
         lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, dtype='float32'))(lstm_out)
-    print("lstm_out.shape")
-    print(lstm_out.shape)
     # Applying attention to each timestep in the LSTM output sequence
     attention = AttentionLayer(config.hidden_size * 2)
     context_vector, attention_weights = attention(lstm_out, lstm_out)
-    print("context_vector.shape")
-    print(context_vector.shape)
 
     # Dense layer processing
     dense_out = layers.Dense(config.hidden_size, activation='relu', dtype='float32')(context_vector)
-    print("dense_out.shape")
-    print(dense_out.shape)
     dropout_out = layers.Dropout(config.dropout, dtype='float32')(dense_out)
-    print("dropout_out.shape")
-    print(dropout_out.shape)
 
     # Time-distributed output layer for time-step-wise prediction
     output = layers.TimeDistributed(layers.Dense(num_notes, activation='softmax', dtype='float32'))(dropout_out)

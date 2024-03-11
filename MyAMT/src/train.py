@@ -48,7 +48,7 @@ def train(db_location, load_model_path=None):
     config = Config()
     input_shape = (None, config.input_size)
     num_notes = config.output_size
-    model = build_model(input_shape, num_notes, config)
+    # model = build_model(input_shape, num_notes, config)
 
     if load_model_path is not None:
         model = load_model_checkpoint(load_model_path)

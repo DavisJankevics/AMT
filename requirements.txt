@@ -13,3 +13,4 @@ museval==0.4.0
 librosa==0.8.1
 midiutil==1.2.1
 argparse==1.4.0
+nvidia-cudnn-cu11==8.9.4.25

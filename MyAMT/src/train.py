@@ -72,7 +72,7 @@ def train(db_location, load_model_path=None):
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
-        ModelCheckpoint("./checkpoints/model_{epoch:03d}.ckpt", save_weights_only=True, save_best_only=True, monitor='val_loss'),
+        ModelCheckpoint("./checkpoints/model_{epoch:03d}.ckpt", save_weights_only=True, save_best_only=True, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     ]
     history = model.fit(

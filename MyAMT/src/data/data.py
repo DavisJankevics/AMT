@@ -4,7 +4,6 @@ import os
 import pandas as pd
 import librosa
 # from utils.utils import extract_features
-import pretty_midi
 
 # class MusicNetDataset(Dataset):
 #     def __init__(self, root_dir, split='train', sr=44100, hop_length=512, n_mfcc=13):

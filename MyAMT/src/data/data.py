@@ -1,9 +1,10 @@
-import torch
-from torch.utils.data import Dataset
+# import torch
+# from torch.utils.data import Dataset
 import os
 import pandas as pd
 import librosa
-from utils.utils import extract_features
+# from utils.utils import extract_features
+import pretty_midi
 
 # class MusicNetDataset(Dataset):
 #     def __init__(self, root_dir, split='train', sr=44100, hop_length=512, n_mfcc=13):
@@ -58,7 +59,7 @@ import os
 import librosa
 import numpy as np
 
-def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=90):
+def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=300):
     audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)
     
     # Calculate the target length in frames
@@ -80,8 +81,8 @@ def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=
     label_tensor = np.zeros((target_length, 88), dtype=np.float32)  # Initialize label tensor with zeros
 
     for _, row in labels_df.iterrows():
-        start_time = row['start_time'] / 1000.0
-        end_time = row['end_time'] / 1000.0
+        start_time = row['start_time'] / 44100
+        end_time = row['end_time'] / 44100
         start_step = int(start_time * sr / hop_length)
         end_step = int(end_time * sr / hop_length)
         note = int(row['note']) - 21

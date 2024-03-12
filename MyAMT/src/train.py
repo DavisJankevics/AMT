@@ -18,7 +18,7 @@ else:
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
 def scheduler(epoch, lr):
-    if epoch < 15:
+    if epoch%10 != 0:
         return lr
     else:
         return lr * tf.math.exp(-0.1)

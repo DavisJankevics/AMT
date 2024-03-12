@@ -10,6 +10,7 @@ from tensorflow.keras.metrics import Precision, Recall
 import tensorflow as tf
 from tensorflow.keras.callbacks import LearningRateScheduler
 import tensorflow.keras.backend as K
+from tensorflow.keras.optimizers import Adam
 
 if tf.test.gpu_device_name():
     print("Default GPU Device: {}".format(tf.test.gpu_device_name()))
@@ -26,11 +27,11 @@ def scheduler(epoch, lr):
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         logs = logs or {}
-        print(f"Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+        print(f"\nBatch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
         
     def on_test_batch_end(self, batch, logs=None):
         logs = logs or {}
-        print(f"Validation Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+        print(f"\nValidation Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
 
 def train(db_location, load_model_path=None):
     config = Config()
@@ -57,8 +58,9 @@ def train(db_location, load_model_path=None):
             print(f"Weights loaded successfully from {load_model_path}.")
     else:
         print("Starting training with a new model.")
+        optimizer = Adam(learning_rate=config.learning_rate)
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
 
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     

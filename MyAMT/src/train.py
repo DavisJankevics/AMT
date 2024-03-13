@@ -25,12 +25,9 @@ else:
 #         return lr * tf.math.exp(-0.1)
 class LearningRateLogger(Callback):
     def on_epoch_end(self, epoch, logs=None):
-        # Retrieve the current learning rate from the model's optimizer
         lr = self.model.optimizer.lr
-        # If the optimizer is using a learning rate schedule, we might need to call `.numpy()` to get the value
-        if callable(lr):
-            lr = lr(epoch).numpy()
-        print(f"\nEpoch {epoch+1}: Learning rate is {lr:.6f}.")
+        current_lr = lr.numpy()  # Convert the learning rate tensor to a numpy array
+        print(f"\nEpoch {epoch+1}: Learning rate is {current_lr:.6f}.")
 
 def focal_loss(gamma=2., alpha=4.):
     def focal_loss_fixed(y_true, y_pred):
@@ -116,7 +113,7 @@ def train(db_location, load_model_path=None):
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
-        ModelCheckpoint("/content/drive/MyDrive/model_binary_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
+        ModelCheckpoint("/content/drive/MyDrive/model_cutom_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
         BatchMetricsLogger(),
         LearningRateLogger()

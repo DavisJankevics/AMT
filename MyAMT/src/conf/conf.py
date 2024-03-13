@@ -3,7 +3,7 @@ class Config:
         # Training parameters
         self.num_epochs = 1000
         self.batch_size = 4
-        self.learning_rate = 0.001
+        self.learning_rate = 0.0001
 
         # Audio processing parameters
         self.sr = 44100  # Sample rate for audio files

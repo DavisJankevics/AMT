@@ -89,8 +89,9 @@ def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length
         padding = np.zeros((n_mels, target_length - mel_spec_norm.shape[1]))
         mel_spec_norm = np.concatenate((mel_spec_norm, padding), axis=1)
     elif mel_spec_norm.shape[1] > target_length:
-        mel_spec_norm = mel_spec_norm[:, :target_length]
-
+        max_start_index = mel_spec_norm.shape[1] - target_length  # Maximum valid start index
+        start_index = np.random.randint(0, max_start_index + 1)  # Random start index
+        mel_spec_norm = mel_spec_norm[:, start_index:start_index + target_length]
     labels_df = pd.read_csv(label_file_path)
     label_tensor = np.zeros((target_length, 88), dtype=np.float32)  # Initialize label tensor with zeros
 

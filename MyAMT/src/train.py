@@ -29,17 +29,17 @@ class LearningRateLogger(Callback):
         current_lr = lr.numpy()  # Convert the learning rate tensor to a numpy array
         print(f"\nEpoch {epoch+1}: Learning rate is {current_lr:.6f}.")
 
-def focal_loss(gamma=2., alpha=4.):
-    def focal_loss_fixed(y_true, y_pred):
-        """Focal loss for multi-classification
-        FL(p_t)=-alpha*(1-p_t)^gamma*log(p_t)
-        """
-        epsilon = tf.keras.backend.epsilon()
-        y_pred = tf.keras.backend.clip(y_pred, epsilon, 1. - epsilon)
-        cross_entropy = -y_true * tf.math.log(y_pred)
-        loss = alpha * tf.math.pow(1 - y_pred, gamma) * cross_entropy
-        return tf.reduce_sum(loss, axis=-1)
-    return focal_loss_fixed
+# def focal_loss(gamma=2., alpha=4.):
+#     def focal_loss_fixed(y_true, y_pred):
+#         """Focal loss for multi-classification
+#         FL(p_t)=-alpha*(1-p_t)^gamma*log(p_t)
+#         """
+#         epsilon = tf.keras.backend.epsilon()
+#         y_pred = tf.keras.backend.clip(y_pred, epsilon, 1. - epsilon)
+#         cross_entropy = -y_true * tf.math.log(y_pred)
+#         loss = alpha * tf.math.pow(1 - y_pred, gamma) * cross_entropy
+#         return tf.reduce_sum(loss, axis=-1)
+#     return focal_loss_fixed
 
 def binary_focal_loss(gamma=2.0, alpha=0.25):
     """
@@ -98,7 +98,7 @@ def train(db_location, load_model_path=None):
         print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):
             # For .h5 files, you can load the full model (uncomment below line if needed)
-            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'focal_loss': binary_focal_loss})
+            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'focal_loss': binary_focal_loss(gamma=2.,alpha=0.25)})
             print(f"Model loaded successfully from {load_model_path}.")
         else:
             # Load weights into the model

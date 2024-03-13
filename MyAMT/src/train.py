@@ -18,11 +18,26 @@ else:
     print("Please install GPU version of TF")
     print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
-def scheduler(epoch, lr):
-    if epoch%10 != 0:
-        return lr
-    else:
-        return lr * tf.math.exp(-0.1)
+# def scheduler(epoch, lr):
+#     if epoch%10 != 0:
+#         return lr
+#     else:
+#         return lr * tf.math.exp(-0.1)
+    
+    import tensorflow as tf
+
+def focal_loss(gamma=2., alpha=4.):
+    def focal_loss_fixed(y_true, y_pred):
+        """Focal loss for multi-classification
+        FL(p_t)=-alpha*(1-p_t)^gamma*log(p_t)
+        """
+        epsilon = tf.keras.backend.epsilon()
+        y_pred = tf.keras.backend.clip(y_pred, epsilon, 1. - epsilon)
+        cross_entropy = -y_true * tf.math.log(y_pred)
+        loss = alpha * tf.math.pow(1 - y_pred, gamma) * cross_entropy
+        return tf.reduce_sum(loss, axis=-1)
+    return focal_loss_fixed
+
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
@@ -37,7 +52,6 @@ def train(db_location, load_model_path=None):
     config = Config()
     input_shape = (None, config.input_size)
     num_notes = config.output_size
-    # model = build_model(input_shape, num_notes, config)
 
     model = build_model(input_shape, num_notes, config)
     initial_epoch = 0
@@ -59,17 +73,16 @@ def train(db_location, load_model_path=None):
     else:
         print("Starting training with a new model.")
         optimizer = Adam(learning_rate=config.learning_rate)
-        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
+        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
 
-    optimizer = Adam(learning_rate=config.learning_rate)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
+    optimizer = Adam()
+    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
-        ModelCheckpoint("/content/drive/MyDrive/model_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
+        ModelCheckpoint("/content/drive/MyDrive/model_binary_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
-        LearningRateScheduler(scheduler),
         BatchMetricsLogger()
     ]
     

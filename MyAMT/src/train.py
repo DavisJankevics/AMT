@@ -96,7 +96,7 @@ def train(db_location, load_model_path=None):
         print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):
             # For .h5 files, you can load the full model (uncomment below line if needed)
-            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'focal_loss': binary_focal_loss})
+            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'binary_focal_loss': binary_focal_loss})
             print(f"Model loaded successfully from {load_model_path}.")
         else:
             # Load weights into the model

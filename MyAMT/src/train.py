@@ -74,9 +74,9 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
 
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
-    # def on_train_batch_end(self, batch, logs=None):
-    #     logs = logs or {}
-    #     print(f"\nBatch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+    def on_train_batch_end(self, batch, logs=None):
+        logs = logs or {}
+        print(f"\n")
         
     def on_test_batch_end(self, batch, logs=None):
         logs = logs or {}

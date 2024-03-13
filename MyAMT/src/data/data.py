@@ -58,23 +58,38 @@ import os
 import librosa
 import numpy as np
 
-def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=300):
-    audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)
+# def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=7.5):
+#     audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)
     
-    # Calculate the target length in frames
-    target_length = int(sr * target_duration / hop_length)
+#     # Calculate the target length in frames
+#     target_length = int(sr * target_duration / hop_length)
     
-    mfcc_features = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, hop_length=hop_length).T
-    mfcc_features = np.expand_dims(mfcc_features, -1)  # Add channel dimension
+#     mfcc_features = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=n_mfcc, hop_length=hop_length).T
+#     mfcc_features = np.expand_dims(mfcc_features, -1)  # Add channel dimension
     
-    # Pad or truncate the mfcc features to match the target_length
-    if len(mfcc_features) < target_length:
-        # Pad
-        padding = np.zeros((target_length - len(mfcc_features), n_mfcc, 1))
-        mfcc_features = np.concatenate((mfcc_features, padding), axis=0)
-    else:
-        # Truncate
-        mfcc_features = mfcc_features[:target_length]
+#     # Pad or truncate the mfcc features to match the target_length
+#     if len(mfcc_features) < target_length:
+#         # Pad
+#         padding = np.zeros((target_length - len(mfcc_features), n_mfcc, 1))
+#         mfcc_features = np.concatenate((mfcc_features, padding), axis=0)
+#     else:
+#         # Truncate
+#         mfcc_features = mfcc_features[:target_length]
+def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_fft=2048, n_mels=229, target_duration=10):
+    target_length = int(sr * target_duration / hop_length)  # Target length in frames
+
+    # Load and process audio file to Mel spectrogram
+    audio, _ = librosa.load(audio_file_path, sr=sr, mono=True, duration=target_duration)
+    mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)
+    log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max)
+    mel_spec_norm = (log_mel_spec - log_mel_spec.min()) / (log_mel_spec.max() - log_mel_spec.min())
+
+    # Ensure the Mel spectrogram has the target shape
+    if mel_spec_norm.shape[1] < target_length:
+        padding = np.zeros((n_mels, target_length - mel_spec_norm.shape[1]))
+        mel_spec_norm = np.concatenate((mel_spec_norm, padding), axis=1)
+    elif mel_spec_norm.shape[1] > target_length:
+        mel_spec_norm = mel_spec_norm[:, :target_length]
 
     labels_df = pd.read_csv(label_file_path)
     label_tensor = np.zeros((target_length, 88), dtype=np.float32)  # Initialize label tensor with zeros
@@ -91,10 +106,11 @@ def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=
         
         if 0 <= note < 88 and start_step < target_length:
             label_tensor[start_step:end_step, note] = 1
+    # print("label_tensor",label_tensor.shape)
+    # print("mel_spec_norm",mel_spec_norm.T.shape)
+    return mel_spec_norm.T, label_tensor
 
-    return mfcc_features, label_tensor
-
-def create_tf_dataset(root_dir, split, sr=44100, hop_length=512, n_mfcc=13):
+def create_tf_dataset(root_dir, split, sr=44100, hop_length=512, n_fft=2048, n_mels=229, target_duration=10):
     data_dir = os.path.join(root_dir, f'{split}_data')
     labels_dir = os.path.join(root_dir, f'{split}_labels')
     audio_files = sorted(os.listdir(data_dir))
@@ -103,12 +119,12 @@ def create_tf_dataset(root_dir, split, sr=44100, hop_length=512, n_mfcc=13):
         for audio_file in audio_files:
             audio_path = os.path.join(data_dir, audio_file)
             label_path = os.path.join(labels_dir, audio_file.replace('.wav', '.csv'))
-            features, labels = load_data_and_labels(audio_path, label_path, sr, hop_length, n_mfcc)
-            yield features, labels
+            features, labels = load_audio_and_labels(audio_path, label_path, sr, hop_length, n_fft, n_mels, target_duration)
+            yield (features, labels)
 
     return tf.data.Dataset.from_generator(
         gen,
         output_signature=(
-            tf.TensorSpec(shape=(None, n_mfcc, 1), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, n_mels), dtype=tf.float32),
             tf.TensorSpec(shape=(None, 88), dtype=tf.float32),
         ))

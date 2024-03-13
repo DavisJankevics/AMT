@@ -120,6 +120,24 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
+
+class CombinePredictionsLayer(layers.Layer):
+    def __init__(self, threshold=0.5, **kwargs):
+        super(CombinePredictionsLayer, self).__init__(**kwargs)
+        self.threshold = threshold
+
+    def call(self, pitch_prediction, onset_prediction):
+        # Assume pitch_prediction and onset_prediction are binary or near-binary (e.g., after applying a sigmoid)
+        combined_prediction = pitch_prediction * onset_prediction
+        # Thresholding to obtain a binary piano roll
+        # piano_roll = tf.where(combined_prediction > self.threshold, 1.0, 0.0)
+        return combined_prediction
+
+    def get_config(self):
+        config = super(CombinePredictionsLayer, self).get_config()
+        config.update({"threshold": self.threshold})
+        return config
+
 class AttentionLayer(layers.Layer):
     def __init__(self, units):
         super(AttentionLayer, self).__init__()
@@ -136,26 +154,56 @@ class AttentionLayer(layers.Layer):
         return context_vector, attention_weights
 
 def build_model(input_shape, num_notes, config):
+    sequence_input = layers.Input(shape=input_shape, dtype='float32')
+    
+    # First BiLSTM layer
+    lstm_out_1 = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(sequence_input)
+    
+    # Apply attention layer for pitch detection
+    pitch_attention = AttentionLayer(config.hidden_size * 2)
+    pitch_context_vector, _ = pitch_attention(lstm_out_1, lstm_out_1)
+    pitch_output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(pitch_context_vector)
 
-    sequence_input = keras.Input(shape=input_shape, dtype='float32')
-    # LSTM layers with return_sequences=True to output sequences for attention layer
-    lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout if config.num_layers > 1 else 0, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(sequence_input)
-    for _ in range(1, config.num_layers):
-        lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(lstm_out)
-    # Applying attention to each timestep in the LSTM output sequence
-    attention = AttentionLayer(config.hidden_size * 2)
-    context_vector, attention_weights = attention(lstm_out, lstm_out)
+    # Apply attention layer for onset detection
+    onset_attention = AttentionLayer(config.hidden_size * 2)
+    onset_context_vector, _ = onset_attention(lstm_out_1, lstm_out_1)
+    onset_output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(onset_context_vector)
 
-    # Dense layer processing
-    dense_out = layers.Dense(config.hidden_size, activation='relu', kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32')(context_vector)
-    dropout_out = layers.Dropout(config.dropout, dtype='float32')(dense_out)
+    # Combining pitch and onset predictions
+    combined_input = layers.Concatenate(axis=-1)([pitch_output, onset_output])
 
-    # Time-distributed output layer for time-step-wise prediction
-    output = layers.TimeDistributed(layers.Dense(num_notes, activation='softmax', dtype='float32'))(dropout_out)
+    # Second BiLSTM layer receives combined context vectors from pitch and onset detections
+    lstm_out_2 = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(combined_input)
+
+    # Final output dense layer for the prediction
+    output = layers.TimeDistributed(layers.Dense(num_notes, activation='sigmoid', dtype='float32'))(lstm_out_2)
 
     model = keras.Model(inputs=sequence_input, outputs=output)
     model.summary()
     return model
+
+
+# def build_model(input_shape, num_notes, config):
+
+#     sequence_input = keras.Input(shape=input_shape, dtype='float32')
+#     # LSTM layers with return_sequences=True to output sequences for attention layer
+#     lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout if config.num_layers > 1 else 0, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(sequence_input)
+#     for _ in range(1, config.num_layers):
+#         lstm_out = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(lstm_out)
+#     # Applying attention to each timestep in the LSTM output sequence
+#     attention = AttentionLayer(config.hidden_size * 2)
+#     context_vector, attention_weights = attention(lstm_out, lstm_out)
+
+#     # Dense layer processing
+#     dense_out = layers.Dense(config.hidden_size, activation='relu', kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32')(context_vector)
+#     dropout_out = layers.Dropout(config.dropout, dtype='float32')(dense_out)
+
+#     # Time-distributed output layer for time-step-wise prediction
+#     output = layers.TimeDistributed(layers.Dense(num_notes, activation='softmax', dtype='float32'))(dropout_out)
+
+#     model = keras.Model(inputs=sequence_input, outputs=output)
+#     model.summary()
+#     return model
 
 # import tensorflow as tf
 # from tensorflow import keras

@@ -1,7 +1,7 @@
 import argparse
 import torch
 from torch.utils.data import DataLoader
-from model.model import build_model, AttentionLayer
+from model.model import build_model, AttentionLayer, CombinePredictionsLayer
 from conf.conf import Config
 from data.data import create_tf_dataset
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
@@ -11,6 +11,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import LearningRateScheduler
 import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import BinaryCrossentropy
 
 if tf.test.gpu_device_name():
     print("Default GPU Device: {}".format(tf.test.gpu_device_name()))
@@ -98,7 +99,8 @@ def train(db_location, load_model_path=None):
         print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):
             # For .h5 files, you can load the full model (uncomment below line if needed)
-            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'focal_loss': binary_focal_loss(gamma=2.,alpha=0.25)})
+            #  'focal_loss': binary_focal_loss(gamma=2.,alpha=0.25), 
+            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer})
             print(f"Model loaded successfully from {load_model_path}.")
         else:
             # Load weights into the model
@@ -107,14 +109,16 @@ def train(db_location, load_model_path=None):
     else:
         print("Starting training with a new model.")
         optimizer = Adam(learning_rate=config.learning_rate)
-        # optimizer = Adam(learning_rate=config.learning_rate)
-        model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])
+        loss_function = BinaryCrossentropy()
+        model.compile(optimizer=optimizer, loss=loss_function, metrics=['accuracy', Precision(), Recall()])
 
     # optimizer = Adam()
     # model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])
-    train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
-    val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
-    
+    # train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
+    # val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
+    train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
+    val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
+
     callbacks = [
         ModelCheckpoint("/content/drive/MyDrive/model_cutom_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),

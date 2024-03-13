@@ -54,10 +54,24 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
     Usage:
      model.compile(optimizer='adam', loss=binary_focal_loss(gamma=2., alpha=0.25), metrics=['accuracy'])
     """
+    """
+    Binary form of focal loss with added stability in log computations.
+    """
     def focal_loss(y_true, y_pred):
+        epsilon = tf.keras.backend.epsilon()  # Small constant to avoid log(0)
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)  # Clip predictions to avoid log(0) and log(1)
+        
         pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
         pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
-        return -tf.reduce_sum(alpha * tf.pow(1. - pt_1, gamma) * tf.math.log(pt_1)) - tf.reduce_sum((1-alpha) * tf.pow(pt_0, gamma) * tf.math.log(1. - pt_0))
+        
+        # Compute the focal loss
+        loss_1 = -alpha * tf.pow(1. - pt_1, gamma) * tf.math.log(pt_1)
+        loss_0 = -(1-alpha) * tf.pow(pt_0, gamma) * tf.math.log(1. - pt_0)
+        
+        # Sum the losses in mini-batches
+        loss = tf.reduce_sum(loss_1) + tf.reduce_sum(loss_0)
+        
+        return loss
     return focal_loss
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):

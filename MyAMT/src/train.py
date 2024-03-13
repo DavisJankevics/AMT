@@ -51,30 +51,19 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
     Usage:
      model.compile(optimizer='adam', loss=binary_focal_loss(gamma=2., alpha=0.25), metrics=['accuracy'])
     """
-    """
-    Binary form of focal loss with added stability in log computations.
-    """
-    def focal_loss(y_true, y_pred):
+    def focal_loss_fixed(y_true, y_pred):
         epsilon = tf.keras.backend.epsilon()  # Small constant to avoid log(0)
-        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)  # Clip predictions to avoid log(0) and log(1)
-        
-        pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
-        pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
-        
-        # Compute the focal loss
-        loss_1 = -alpha * tf.pow(1. - pt_1, gamma) * tf.math.log(pt_1)
-        loss_0 = -(1-alpha) * tf.pow(pt_0, gamma) * tf.math.log(1. - pt_0)
-        
-        # Sum the losses in mini-batches
-        loss = tf.reduce_sum(loss_1) + tf.reduce_sum(loss_0)
-        
-        return loss
-    return focal_loss
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
+        cross_entropy = -y_true * tf.math.log(y_pred) - (1. - y_true) * tf.math.log(1. - y_pred)
+        loss = alpha * tf.pow(1 - y_pred, gamma) * cross_entropy
+        return tf.reduce_mean(loss, axis=-1)
+    return focal_loss_fixed
+
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
-    def on_train_batch_end(self, batch, logs=None):
-        logs = logs or {}
-        print(f"\nBatch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+    # def on_train_batch_end(self, batch, logs=None):
+    #     logs = logs or {}
+    #     print(f"\nBatch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
         
     def on_test_batch_end(self, batch, logs=None):
         logs = logs or {}

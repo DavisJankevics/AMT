@@ -120,7 +120,7 @@ def train(db_location, load_model_path=None):
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
 
     callbacks = [
-        ModelCheckpoint("/content/drive/MyDrive/model_cutom_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
+        ModelCheckpoint("/content/drive/MyDrive/model_mel_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
         BatchMetricsLogger(),
         LearningRateLogger()

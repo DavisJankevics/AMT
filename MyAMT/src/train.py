@@ -51,13 +51,26 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
     Usage:
      model.compile(optimizer='adam', loss=binary_focal_loss(gamma=2., alpha=0.25), metrics=['accuracy'])
     """
-    def focal_loss_fixed(y_true, y_pred):
+    """
+    Binary form of focal loss with added stability in log computations.
+    """
+    def focal_loss(y_true, y_pred):
         epsilon = tf.keras.backend.epsilon()  # Small constant to avoid log(0)
-        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)
-        cross_entropy = -y_true * tf.math.log(y_pred) - (1. - y_true) * tf.math.log(1. - y_pred)
-        loss = alpha * tf.pow(1 - y_pred, gamma) * cross_entropy
-        return tf.reduce_mean(loss, axis=-1)
-    return focal_loss_fixed
+        y_pred = tf.clip_by_value(y_pred, epsilon, 1. - epsilon)  # Clip predictions to avoid log(0) and log(1)
+
+        pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
+        pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
+
+        # Compute the focal loss for positive and negative samples separately
+        loss_1 = -alpha * tf.pow(1. - pt_1, gamma) * tf.math.log(pt_1)
+        loss_0 = -(1-alpha) * tf.pow(pt_0, gamma) * tf.math.log(1. - pt_0)
+
+        # Combine the losses (mean over the batch)
+        loss = tf.reduce_mean(loss_1 + loss_0)
+
+        return loss
+
+    return focal_loss
 
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):

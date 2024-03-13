@@ -10,7 +10,7 @@ class Config:
         self.hop_length = int(self.sr * (1/64))  # Approximately 689
         self.n_fft = 2048  # FFT window size for Mel-spectrogram
         self.n_mels = 229  # Number of Mel bins
-        self.target_duration = 300  # Target duration of audio clips in seconds
+        self.target_duration = 240  # Target duration of audio clips in seconds
 
         # Model architecture parameters
         self.input_size = self.n_mels  # Input feature dimension (Mel bins)

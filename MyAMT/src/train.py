@@ -23,8 +23,14 @@ else:
 #         return lr
 #     else:
 #         return lr * tf.math.exp(-0.1)
-    
-    import tensorflow as tf
+class LearningRateLogger(Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        # Retrieve the current learning rate from the model's optimizer
+        lr = self.model.optimizer.lr
+        # If the optimizer is using a learning rate schedule, we might need to call `.numpy()` to get the value
+        if callable(lr):
+            lr = lr(epoch).numpy()
+        print(f"\nEpoch {epoch+1}: Learning rate is {lr:.6f}.")
 
 def focal_loss(gamma=2., alpha=4.):
     def focal_loss_fixed(y_true, y_pred):
@@ -38,6 +44,21 @@ def focal_loss(gamma=2., alpha=4.):
         return tf.reduce_sum(loss, axis=-1)
     return focal_loss_fixed
 
+def binary_focal_loss(gamma=2.0, alpha=0.25):
+    """
+    Binary form of focal loss.
+      FL(p_t) = -alpha * (1 - p_t)**gamma * log(p_t)
+      where p = sigmoid(x), p_t = p or 1 - p depending on if the label is 1 or 0, respectively.
+    References:
+        https://arxiv.org/abs/1708.02002
+    Usage:
+     model.compile(optimizer='adam', loss=binary_focal_loss(gamma=2., alpha=0.25), metrics=['accuracy'])
+    """
+    def focal_loss(y_true, y_pred):
+        pt_1 = tf.where(tf.equal(y_true, 1), y_pred, tf.ones_like(y_pred))
+        pt_0 = tf.where(tf.equal(y_true, 0), y_pred, tf.zeros_like(y_pred))
+        return -tf.reduce_sum(alpha * tf.pow(1. - pt_1, gamma) * tf.math.log(pt_1)) - tf.reduce_sum((1-alpha) * tf.pow(pt_0, gamma) * tf.math.log(1. - pt_0))
+    return focal_loss
 
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
@@ -73,17 +94,18 @@ def train(db_location, load_model_path=None):
     else:
         print("Starting training with a new model.")
         optimizer = Adam(learning_rate=config.learning_rate)
-        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
+        model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])
 
     optimizer = Adam()
-    model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
+    model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     
     callbacks = [
         ModelCheckpoint("/content/drive/MyDrive/model_binary_loss_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
-        BatchMetricsLogger()
+        BatchMetricsLogger(),
+        LearningRateLogger()
     ]
     
     history = model.fit(

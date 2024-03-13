@@ -91,7 +91,7 @@ def train(db_location, load_model_path=None):
     if load_model_path:
         # Check if the path is a .ckpt file (weights only)
         filename = load_model_path.split('/')[-1]  # Get the file name
-        epoch_str = filename.split('_')[1]  # Split by "_" and get the epoch part
+        epoch_str = filename.split('_')[-1]  # Split by "_" and get the epoch part
         initial_epoch = int(epoch_str.split('.')[0])
         print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):

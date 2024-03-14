@@ -6,12 +6,12 @@ from conf.conf import Config
 from data.data import create_tf_dataset
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
-from tensorflow.keras.metrics import Precision, Recall
+from tensorflow.keras.metrics import Precision, Recall, BinaryAccuracy, F1Score
 import tensorflow as tf
 from tensorflow.keras.callbacks import LearningRateScheduler
 import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.losses import BinaryCrossentropy
+from tensorflow.keras.losses import BinaryFocalCrossentropy
 
 if tf.test.gpu_device_name():
     print("Default GPU Device: {}".format(tf.test.gpu_device_name()))
@@ -73,15 +73,14 @@ def binary_focal_loss(gamma=2.0, alpha=0.25):
 
     return focal_loss
 
-
 class BatchMetricsLogger(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         logs = logs or {}
-        print(f"\n")
+        print(f"")
         
     def on_test_batch_end(self, batch, logs=None):
         logs = logs or {}
-        print(f"\nValidation Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
+        print(f"\nValidation Batch {batch}, Loss: {logs.get('loss')}, Accuracy: {logs.get('binary_accuracy')}, Precision: {logs.get('precision')}, Recall: {logs.get('recall')}")
 
 def train(db_location, load_model_path=None):
     config = Config()
@@ -108,9 +107,11 @@ def train(db_location, load_model_path=None):
             print(f"Weights loaded successfully from {load_model_path}.")
     else:
         print("Starting training with a new model.")
-        optimizer = Adam(learning_rate=config.learning_rate)
-        # loss_function = binary_focal_loss(gamma=2.,alpha=0.25)
-        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
+        optimizer = Adam()
+        # optimizer = Adam(learning_rate=config.learning_rate)
+        loss_function = BinaryFocalCrossentropy(gamma=2.,alpha=0.25, apply_class_balancing=True)
+        accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
+        model.compile(optimizer=optimizer, loss=loss_function, metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
 
     # optimizer = Adam()
     # model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])
@@ -120,12 +121,11 @@ def train(db_location, load_model_path=None):
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
 
     callbacks = [
-        ModelCheckpoint("/content/drive/MyDrive/model_mel_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, monitor='val_loss', mode='min', verbose=1),
-        EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True),
+        ModelCheckpoint("/content/drive/MyDrive/model_mel_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, verbose=1),
+        EarlyStopping(monitor='val_loss', patience=10, min_delta=0, restore_best_weights=True, verbose=1, mode='auto'),
         BatchMetricsLogger(),
         LearningRateLogger()
     ]
-    
     history = model.fit(
         train_dataset.batch(config.batch_size),  # Ensure batching is applied
         epochs=config.num_epochs,

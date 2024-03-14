@@ -121,12 +121,24 @@ def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length
 
     # np.set_printoptions(threshold=np.inf)
     # print("label_tensor",label_tensor.shape)
-    # print("mel_spec_norm",mel_spec_norm.shape)
+    # print("mel_spec_norm",mel_spec_norm.T.shape)
     # print("label tenosr", label_tensor)
     # np.savetxt("demofile2.txt", label_tensor, delimiter=',')
     # f.write(label_tensor)
     # f.close()
     # print("mel_spec_norm",mel_spec_norm.T.shape)
+    # plt.figure()
+    # plt.imshow( np.array(mel_spec_norm),aspect='auto')
+    # plt.colorbar()
+    # plt.figure()
+    # plt.imshow( np.array(label_tensor.T), aspect='auto')
+    # plt.colorbar()
+    # plt.figure(figsize=(10, 4))
+    # librosa.display.specshow(mel_spec_norm, sr=sr, hop_length=hop_length, x_axis='time', y_axis='mel')
+    # plt.colorbar(format='%+2.0f dB')
+    # plt.title('Normalized Mel spectrogram')
+    # plt.tight_layout()
+    # plt.show()
     return mel_spec_norm.T, label_tensor
 
 def create_tf_dataset(root_dir, split, sr=44100, hop_length=512, n_fft=2048, n_mels=229, target_duration=10):

@@ -109,7 +109,7 @@ def train(db_location, load_model_path=None):
         print("Starting training with a new model.")
         optimizer = Adam()
         # optimizer = Adam(learning_rate=config.learning_rate)
-        loss_function = BinaryFocalCrossentropy(gamma=2.,alpha=0.25, apply_class_balancing=True)
+        loss_function = BinaryFocalCrossentropy(gamma=3.,alpha=0.25, apply_class_balancing=True)
         accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
         model.compile(optimizer=optimizer, loss=loss_function, metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
 

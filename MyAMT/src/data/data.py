@@ -57,8 +57,8 @@ import pandas as pd
 import os
 import librosa
 import numpy as np
-import matplotlib.pyplot as plt
-import librosa.display
+# import matplotlib.pyplot as plt
+# import librosa.display
 
 # def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=7.5):
 #     audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)

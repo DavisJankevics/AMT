@@ -104,8 +104,8 @@ def train(db_location, load_model_path=None):
         else:
             # Load weights into the model
             model.load_weights(load_model_path)
-            # accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
-            # model.compile(metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
+            accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
+            model.compile(metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
             print(f"Weights loaded successfully from {load_model_path}.")
     else:
         print("Starting training with a new model.")

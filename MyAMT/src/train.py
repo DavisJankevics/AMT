@@ -110,7 +110,7 @@ def train(db_location, load_model_path=None):
         print("Starting training with a new model.")
         optimizer = Adam(learning_rate=config.learning_rate)
         # loss_function = binary_focal_loss(gamma=2.,alpha=0.25)
-        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', Precision(), Recall()])
+        model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy', Precision(), Recall()])
 
     # optimizer = Adam()
     # model.compile(optimizer=optimizer, loss=binary_focal_loss(gamma=2.,alpha=0.25), metrics=['accuracy', Precision(), Recall()])

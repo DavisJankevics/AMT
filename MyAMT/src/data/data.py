@@ -57,6 +57,8 @@ import pandas as pd
 import os
 import librosa
 import numpy as np
+import matplotlib.pyplot as plt
+import librosa.display
 
 # def load_data_and_labels(audio_file_path, label_file_path, sr=44100, hop_length=512, n_mfcc=13, target_duration=7.5):
 #     audio, sr = librosa.load(audio_file_path, sr=sr, mono=True)
@@ -79,41 +81,51 @@ def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length
     target_length = int(sr * target_duration / hop_length)  # Target length in frames
 
     # Load and process audio file to Mel spectrogram
-    audio, _ = librosa.load(audio_file_path, sr=sr, mono=True, duration=target_duration)
+    audio, _ = librosa.load(audio_file_path, sr=sr, mono=True)
     mel_spec = librosa.feature.melspectrogram(y=audio, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels)
     log_mel_spec = librosa.power_to_db(mel_spec, ref=np.max)
     mel_spec_norm = (log_mel_spec - log_mel_spec.min()) / (log_mel_spec.max() - log_mel_spec.min())
-    max_start_index = max(mel_spec_norm.shape[1] - target_length, 0)  # Ensure non-negative
-    start_index = np.random.randint(0, max_start_index + 1) if max_start_index > 0 else 0
-    end_index = start_index + target_length
-    # Ensure the Mel spectrogram has the target shape
-    if mel_spec_norm.shape[1] < target_length:
+
+    # Adjust mel_spec_norm to have a shape of (n_mels, target_length)
+    if mel_spec_norm.shape[1] > target_length:
+        # Randomly select a segment of the Mel spectrogram
+        max_start_index = mel_spec_norm.shape[1] - target_length
+        start_index = 0
+        # np.random.randint(0, max_start_index)
+        mel_spec_norm = mel_spec_norm[:, start_index:start_index + target_length]
+    else:
         padding = np.zeros((n_mels, target_length - mel_spec_norm.shape[1]))
         mel_spec_norm = np.concatenate((mel_spec_norm, padding), axis=1)
-    else:
-        mel_spec_norm = mel_spec_norm[:, start_index:end_index]
+
     labels_df = pd.read_csv(label_file_path)
     label_tensor = np.zeros((target_length, 88), dtype=np.float32)  # Initialize label tensor with zeros
-    start_time_offset = start_index * hop_length / sr  # Start time in seconds of the cropped spectrogram
+    # print("audio_file_path", audio_file_path)
+    # print("label_file_path", label_file_path)
+    # plt.figure(figsize=(10, 4))
+    # librosa.display.specshow(mel_spec_norm, sr=sr, hop_length=hop_length, x_axis='time', y_axis='mel')
+    # plt.colorbar(format='%+2.0f dB')
+    # plt.title('Normalized Mel spectrogram')
+    # plt.tight_layout()
+    # plt.show()
 
+    # Adjust start and end steps based on the selected segment start index
     for _, row in labels_df.iterrows():
-        original_start_time = row['start_time'] / sr
-        original_end_time = row['end_time'] / sr
-
-        # Adjust times based on the start_time_offset
-        adjusted_start_time = original_start_time - start_time_offset
-        adjusted_end_time = original_end_time - start_time_offset
-
-        # Convert times to steps
-        start_step = max(int(adjusted_start_time * sr / hop_length), 0)
-        end_step = min(int(adjusted_end_time * sr / hop_length), target_length)
-
+        start_time = row['start_time'] / sr
+        end_time = row['end_time'] / sr
+        start_step = max(int(start_time * sr / hop_length) - start_index, 0)
+        end_step = min(int(end_time * sr / hop_length) - start_index, target_length)
         note = int(row['note']) - 21
-
-        # Mark note as active for its duration
+        
         if 0 <= note < 88 and start_step < end_step:
             label_tensor[start_step:end_step, note] = 1
+
+    # np.set_printoptions(threshold=np.inf)
     # print("label_tensor",label_tensor.shape)
+    # print("mel_spec_norm",mel_spec_norm.shape)
+    # print("label tenosr", label_tensor)
+    # np.savetxt("demofile2.txt", label_tensor, delimiter=',')
+    # f.write(label_tensor)
+    # f.close()
     # print("mel_spec_norm",mel_spec_norm.T.shape)
     return mel_spec_norm.T, label_tensor
 

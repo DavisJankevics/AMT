@@ -156,7 +156,7 @@ class AttentionLayer(layers.Layer):
 def build_model(input_shape, num_notes, config):
     sequence_input = layers.Input(shape=input_shape, dtype='float32')
 
-    x = layers.Conv1D(filters=config.hidden_size, kernel_size=3, activation='relu', padding='same')(sequence_input)
+    x = layers.Conv1D(filters=config.hidden_size * 2, kernel_size=3, activation='relu', padding='same')(sequence_input)
     # x = layers.Conv1D(filters=128, kernel_size=3, activation='relu', padding='same')(x)
     # x = layers.Conv1D(filters=512, kernel_size=3, activation='relu', padding='same')(x)
     # First BiLSTM layer
@@ -193,8 +193,8 @@ def build_model(input_shape, num_notes, config):
     # lstm_out_3 = layers.concatenate([lstm_out_3, onset_output])
 
     # Final output dense layer for the prediction
-    output = layers.TimeDistributed(layers.Dense(num_notes, activation='sigmoid', dtype='float32'))(dropout_1)
-    # output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(dropout_1)
+    # output = layers.TimeDistributed(layers.Dense(num_notes, activation='sigmoid', dtype='float32'))(dropout_1)
+    output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(dropout_1)
 
     model = keras.Model(inputs=sequence_input, outputs=output)
     model.summary()

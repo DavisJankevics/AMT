@@ -90,8 +90,8 @@ def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length
     if mel_spec_norm.shape[1] > target_length:
         # Randomly select a segment of the Mel spectrogram
         max_start_index = mel_spec_norm.shape[1] - target_length
-        start_index = 0
-        # np.random.randint(0, max_start_index)
+        # start_index = 0
+        start_index = np.random.randint(0, max_start_index)
         mel_spec_norm = mel_spec_norm[:, start_index:start_index + target_length]
     else:
         padding = np.zeros((n_mels, target_length - mel_spec_norm.shape[1]))

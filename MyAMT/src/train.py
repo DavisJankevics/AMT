@@ -99,8 +99,8 @@ def train(db_location, load_model_path=None):
         print(f"Loading model from {load_model_path} at epoch {initial_epoch}.")
         if load_model_path.endswith('.h5'):
             # For .h5 files, you can load the full model (uncomment below line if needed)
-            #  'focal_loss': binary_focal_loss(gamma=2.,alpha=0.25), 
-            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer})
+             
+            model = tf.keras.models.load_model(load_model_path, custom_objects={'AttentionLayer': AttentionLayer, 'binary_focal_loss': binary_focal_loss(gamma=2.,alpha=0.25)})
             print(f"Model loaded successfully from {load_model_path}.")
         else:
             # Load weights into the model
@@ -109,7 +109,7 @@ def train(db_location, load_model_path=None):
     else:
         print("Starting training with a new model.")
         optimizer = Adam(learning_rate=config.learning_rate)
-        loss_function = BinaryCrossentropy()
+        loss_function = binary_focal_loss(gamma=2.,alpha=0.25)
         model.compile(optimizer=optimizer, loss=loss_function, metrics=['accuracy', Precision(), Recall()])
 
     # optimizer = Adam()

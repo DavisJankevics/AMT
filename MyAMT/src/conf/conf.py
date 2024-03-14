@@ -14,7 +14,7 @@ class Config:
 
         # Model architecture parameters
         self.input_size = self.n_mels  # Input feature dimension (Mel bins)
-        self.hidden_size = 512  # LSTM hidden layer size
+        self.hidden_size = 256  # LSTM hidden layer size
         self.num_layers = 3  # Number of LSTM layers
         self.bidirectional = True  # Whether to use a bidirectional LSTM
         self.output_size = 88  # Number of output nodes, corresponding to piano key range

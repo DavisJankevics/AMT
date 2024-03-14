@@ -164,19 +164,21 @@ def build_model(input_shape, num_notes, config):
     pitch_context_vector, _ = pitch_attention(lstm_out_1, lstm_out_1)
     pitch_output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(pitch_context_vector)
 
+    lstm_out_2 = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(pitch_output)
+
     # Apply attention layer for onset detection
     onset_attention = AttentionLayer(config.hidden_size * 2)
-    onset_context_vector, _ = onset_attention(lstm_out_1, lstm_out_1)
+    onset_context_vector, _ = onset_attention(lstm_out_2, lstm_out_2)
     onset_output = layers.Dense(num_notes, activation='sigmoid', dtype='float32')(onset_context_vector)
 
     # Combining pitch and onset predictions
-    combined_input = layers.Concatenate(axis=-1)([pitch_output, onset_output])
+    # combined_input = layers.Concatenate(axis=-1)([pitch_output, onset_output])
 
     # Second BiLSTM layer receives combined context vectors from pitch and onset detections
-    lstm_out_2 = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(combined_input)
+    lstm_out_3 = layers.Bidirectional(layers.LSTM(config.hidden_size, return_sequences=True, dropout=config.dropout, kernel_regularizer=regularizers.l1_l2(l1=0.01, l2=0.01), dtype='float32'))(onset_output)
 
     # Final output dense layer for the prediction
-    output = layers.TimeDistributed(layers.Dense(num_notes, activation='sigmoid', dtype='float32'))(lstm_out_2)
+    output = layers.TimeDistributed(layers.Dense(num_notes, activation='sigmoid', dtype='float32'))(lstm_out_3)
 
     model = keras.Model(inputs=sequence_input, outputs=output)
     model.summary()

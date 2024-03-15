@@ -155,7 +155,8 @@ class AttentionLayer(layers.Layer):
 
 def build_model(input_shape, num_notes, config):
     sequence_input = layers.Input(shape=input_shape, dtype='float32')
-    x = layers.Conv1D(filters=64, kernel_size=3, activation='relu', padding='same')(sequence_input)
+    masked_input = layers.Masking(mask_value=-1.)(sequence_input)
+    x = layers.Conv1D(filters=64, kernel_size=3, activation='relu', padding='same')(masked_input)
     x = layers.Conv1D(filters=128, kernel_size=3, activation='relu', padding='same')(x)
     # x = layers.Conv1D(filters=512, kernel_size=3, activation='relu', padding='same')(x)
 

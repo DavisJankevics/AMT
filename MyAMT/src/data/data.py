@@ -94,7 +94,7 @@ def load_audio_and_labels(audio_file_path, label_file_path, sr=44100, hop_length
         start_index = np.random.randint(0, max_start_index)
         mel_spec_norm = mel_spec_norm[:, start_index:start_index + target_length]
     else:
-        padding = np.zeros((n_mels, target_length - mel_spec_norm.shape[1]))
+        padding = -np.ones((n_mels, target_length - mel_spec_norm.shape[1]))
         mel_spec_norm = np.concatenate((mel_spec_norm, padding), axis=1)
 
     labels_df = pd.read_csv(label_file_path)

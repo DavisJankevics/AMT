@@ -19,3 +19,7 @@ class Config:
         self.bidirectional = True  # Whether to use a bidirectional LSTM
         self.output_size = 88  # Number of output nodes, corresponding to piano key range
         self.dropout = 0.3
+
+        # Loss funciton
+        self.gamma = 3.0
+        self.alpha = 0.70

@@ -105,15 +105,15 @@ def train(db_location, load_model_path=None):
             # Load weights into the model
             model.load_weights(load_model_path)
             accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
-            loss_function = BinaryFocalCrossentropy(gamma=3.,alpha=0.65, apply_class_balancing=True)
-
+            loss_function = BinaryFocalCrossentropy(gamma=config.gamma,alpha=config.alpha, apply_class_balancing=True)
+            # optimizer = Adam(learning_rate=config.learning_rate)
             model.compile(loss = loss_function, metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
             print(f"Weights loaded successfully from {load_model_path}.")
     else:
         print("Starting training with a new model.")
         optimizer = Adam()
         # optimizer = Adam(learning_rate=config.learning_rate)
-        loss_function = BinaryFocalCrossentropy(gamma=3.,alpha=0.65, apply_class_balancing=True)
+        loss_function = BinaryFocalCrossentropy(gamma=config.gamma,alpha=config.alpha, apply_class_balancing=True)
         accuracy = BinaryAccuracy(name = 'binary_accuracy', threshold = 0.5)
         model.compile(optimizer=optimizer, loss=loss_function, metrics=[accuracy, Precision(thresholds = 0.5), Recall(thresholds = 0.5)])
 
@@ -125,9 +125,9 @@ def train(db_location, load_model_path=None):
     # val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_mfcc=config.n_mfcc)
     train_dataset = create_tf_dataset(root_dir=db_location, split='train', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
     val_dataset = create_tf_dataset(root_dir=db_location, split='validation', sr=config.sr, hop_length=config.hop_length, n_fft=config.n_fft, n_mels=config.n_mels, target_duration=config.target_duration)
-
+    alpha, gamma = (config.alpha % 1) * 100, config.gamma
     callbacks = [
-        ModelCheckpoint("/content/drive/MyDrive/model_mel_g3_a65_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, verbose=1),
+        ModelCheckpoint("/content/drive/MyDrive/model_mel_g{gamma:01d}_a{alpha:02d}_{epoch:03d}.h5", save_weights_only=False, save_best_only=False, verbose=1),
         EarlyStopping(monitor='val_loss', patience=10, min_delta=0, restore_best_weights=True, verbose=1, mode='auto'),
         BatchMetricsLogger(),
         LearningRateLogger()
